@@ -1,6 +1,7 @@
 import os
 import json
-from flask import Flask, render_template, request, redirect, url_for, send_file, jsonify
+from functools import wraps
+from flask import Flask, render_template, request, redirect, url_for, send_file, jsonify, Response
 from database import init_db, save_lead, get_lead, get_all_leads, get_agency_metrics, get_lead_seguimiento, add_seguimiento_note, update_lead_status
 from analyzer import run_diagnostic
 from pdf_generator import generate_pdf_report
@@ -8,6 +9,28 @@ from notifier import send_telegram_notification, send_client_email
 
 app = Flask(__name__)
 REPORTS_DIR = os.path.join(os.path.dirname(__file__), 'reports')
+
+def check_auth(username, password):
+    """Verifica si las credenciales de la agencia son correctas."""
+    admin_user = os.environ.get('AGENCY_USER', 'admin')
+    admin_pass = os.environ.get('AGENCY_PASSWORD', 'dipromasters2026')
+    return username == admin_user and password == admin_pass
+
+def authenticate():
+    """Envía respuesta 401 que activa el prompt de login en el navegador."""
+    return Response(
+        'Acceso denegado. Introduce el usuario y contraseña correctos de Dipromasters.', 401,
+        {'WWW-Authenticate': 'Basic realm="Acceso Panel de Agencia Dipromasters"'}
+    )
+
+def requires_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.authorization
+        if not auth or not check_auth(auth.username, auth.password):
+            return authenticate()
+        return f(*args, **kwargs)
+    return decorated
 
 # Asegurar que existe la carpeta para reportes
 os.makedirs(REPORTS_DIR, exist_ok=True)
@@ -155,6 +178,7 @@ def download_pdf(lead_id):
     )
 
 @app.route('/agency')
+@requires_auth
 def agency():
     profile = request.args.get('profile')
     status = request.args.get('status')
@@ -176,6 +200,7 @@ def agency():
     )
 
 @app.route('/get-followup/<int:lead_id>')
+@requires_auth
 def get_followup(lead_id):
     rows = get_lead_seguimiento(lead_id)
     notes = []
@@ -189,6 +214,7 @@ def get_followup(lead_id):
     return jsonify({'notes': notes})
 
 @app.route('/add-followup/<int:lead_id>', methods=['POST'])
+@requires_auth
 def add_followup(lead_id):
     data = request.get_json()
     comentarios = data.get('comentarios')
@@ -199,6 +225,7 @@ def add_followup(lead_id):
     return jsonify({'success': True})
 
 @app.route('/update-status/<int:lead_id>', methods=['POST'])
+@requires_auth
 def update_status(lead_id):
     data = request.get_json()
     estado = data.get('estado_seguimiento')

@@ -1,0 +1,323 @@
+{% extends 'base.html' %}
+
+{% block title %}Dipromasters | Tu Diagnóstico Digital{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <div>
+        <p style="color: var(--text-muted); font-weight: 600;">INFORME DE DIAGNÓSTICO DIGITAL</p>
+        <h1 style="font-size: 2.2rem; margin-top: 0.25rem;">Resultados para {{ data.lead_info.nombre }}</h1>
+    </div>
+    <div class="dashboard-actions">
+        <a href="/download-pdf/{{ lead_id }}" class="btn btn-secondary">
+            Descargar PDF Reporte
+        </a>
+        <a href="https://wa.me/34600000000?text=Hola%20Dipromasters,%20acabo%20de%20realizar%20mi%20diagn%C3%B3stico%20digital%20con%20una%20puntuaci%C3%B3n%20de%20{{ data.global_metrics.score }}/100%20y%20quiero%20mejorar%20mi%20negocio." target="_blank" class="btn btn-primary">
+            Hablar con un Asesor
+        </a>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <!-- Main Left Column -->
+    <div class="sections-container">
+        <!-- 1. TIKTOK AUDIT -->
+        <div class="section-card">
+            <div class="section-title">
+                <h2>Auditoría de TikTok</h2>
+                {% set tk_score = data.tiktok_metrics.score %}
+                {% if tk_score >= 32 %}
+                    <span class="semaphore badge-excellent">🟢 Excelente ({# #}{{ tk_score }}/40)</span>
+                {% elif tk_score >= 20 %}
+                    <span class="semaphore badge-improvable">🟡 Mejorable ({# #}{{ tk_score }}/40)</span>
+                {% elif tk_score >= 10 %}
+                    <span class="semaphore badge-worrying">🟠 Preocupante ({# #}{{ tk_score }}/40)</span>
+                {% else %}
+                    <span class="semaphore badge-critical">🔴 Crítico ({# #}{{ tk_score }}/40)</span>
+                {% endif %}
+            </div>
+            
+            <div class="metrics-list">
+                <div class="metric-item">
+                    <span class="metric-name">Seguidores</span>
+                    <span class="metric-val">{{ "{:,}".format(data.tiktok_metrics.followers) }}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-name">Engagement Promedio</span>
+                    <span class="metric-val">{{ data.tiktok_metrics.engagement }}%</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-name">Publicaciones (Últimos 30 días)</span>
+                    <span class="metric-val">{{ data.tiktok_metrics.posts_month }} posts</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-name">Enlace en Biografía</span>
+                    <span class="metric-val">{% if data.tiktok_metrics.has_link_in_bio %}Sí ({{ data.tiktok_metrics.bio_destination }}){% else %}No{% endif %}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-name">Responde Comentarios</span>
+                    <span class="metric-val">{% if data.tiktok_metrics.responds_comments %}Sí{% else %}No{% endif %}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-name">Calidad de Video</span>
+                    <span class="metric-val">{{ data.tiktok_metrics.video_quality }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. WEBSITE AUDIT -->
+        <div class="section-card">
+            <div class="section-title">
+                <h2>Auditoría de Sitio Web</h2>
+                {% set w_score = data.web_metrics.score %}
+                {% if not data.web_info or w_score == 0 %}
+                    <span class="semaphore badge-critical">🔴 Crítico (0/35)</span>
+                {% elif w_score >= 28 %}
+                    <span class="semaphore badge-excellent">🟢 Excelente ({# #}{{ w_score }}/35)</span>
+                {% elif w_score >= 20 %}
+                    <span class="semaphore badge-improvable">🟡 Mejorable ({# #}{{ w_score }}/35)</span>
+                {% elif w_score >= 10 %}
+                    <span class="semaphore badge-worrying">🟠 Preocupante ({# #}{{ w_score }}/35)</span>
+                {% else %}
+                    <span class="semaphore badge-critical">🔴 Crítico ({# #}{{ w_score }}/35)</span>
+                {% endif %}
+            </div>
+            
+            <div class="metrics-list">
+                <div class="metric-item">
+                    <span class="metric-name">Sitio Activo</span>
+                    <span class="metric-val">{% if data.web_metrics.active %}🟢 Activo{% else %}🔴 Caído / No tiene{% endif %}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-name">Certificado SSL</span>
+                    <span class="metric-val">{% if data.web_metrics.ssl %}🟢 HTTPS Activo{% else %}🔴 HTTP Inseguro{% endif %}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-name">Velocidad de Carga</span>
+                    <span class="metric-val">{% if data.web_metrics.active %}{{ data.web_metrics.load_time }}s{% else %}N/A{% endif %}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-name">Diseño Móvil (Responsive)</span>
+                    <span class="metric-val">{% if data.web_metrics.responsive %}Sí{% else %}No{% endif %}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-name">Botón de WhatsApp Flotante</span>
+                    <span class="metric-val">{% if data.web_metrics.has_whatsapp %}Instalado{% else %}Falta{% endif %}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-name">Meta Descripción SEO</span>
+                    <span class="metric-val">{% if data.web_metrics.meta_description %}Sí{% else %}Falta{% endif %}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. GOOGLE REVIEWS AUDIT -->
+        <div class="section-card">
+            <div class="section-title">
+                <h2>Auditoría de Google Reviews</h2>
+                {% set g_score = data.google_metrics.score %}
+                {% if g_score >= 20 %}
+                    <span class="semaphore badge-excellent">🟢 Excelente ({# #}{{ g_score }}/25)</span>
+                {% elif g_score >= 12 %}
+                    <span class="semaphore badge-improvable">🟡 Mejorable ({# #}{{ g_score }}/25)</span>
+                {% elif g_score >= 6 %}
+                    <span class="semaphore badge-worrying">🟠 Preocupante ({# #}{{ g_score }}/25)</span>
+                {% else %}
+                    <span class="semaphore badge-critical">🔴 Crítico ({# #}{{ g_score }}/25)</span>
+                {% endif %}
+            </div>
+            
+            <div class="metrics-list">
+                <div class="metric-item">
+                    <span class="metric-name">Ficha Google My Business Activa</span>
+                    <span class="metric-val">{% if data.google_metrics.gmb_active %}Sí{% else %}No{% endif %}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-name">Calificación Promedio</span>
+                    <span class="metric-val">{{ data.google_metrics.rating }} / 5.0 ⭐</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-name">Total de Reseñas</span>
+                    <span class="metric-val">{{ data.google_metrics.total_reviews }} reseñas</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-name">Reseñas Últimos 30 Días</span>
+                    <span class="metric-val">{{ data.google_metrics.recent_reviews }}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-name">Respuestas a Clientes</span>
+                    <span class="metric-val">{% if data.google_metrics.owner_responds %}Sí (Responde){% else %}No{% endif %}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-name">Tendencia Comercial</span>
+                    <span class="metric-val">{{ data.google_metrics.trend }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- COMPETITORS COMPARISON -->
+        <div class="section-card comparison-card">
+            <h2>Comparativa con Competidores Locales</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;">Medición de desempeño local frente a 3 negocios similares en tu sector comercial:</p>
+            
+            <div class="comparison-grids">
+                <!-- TikTok Followers comparison -->
+                <div class="chart-container">
+                    <div class="chart-title">Seguidores en TikTok</div>
+                    <div class="bar-chart">
+                        <!-- Client -->
+                        <div class="bar-row client-row">
+                            <div class="bar-label-group">
+                                <span>{{ data.tiktok_metrics.username }} (Tú)</span>
+                                <span>{{ "{:,}".format(data.tiktok_metrics.followers) }}</span>
+                            </div>
+                            <div class="bar-track">
+                                <div class="bar-fill" style="width: {{ (data.tiktok_metrics.followers / data.competitors[2].tiktok_followers * 100)|round(0) if data.competitors[2].tiktok_followers > 0 else 0 }}%"></div>
+                            </div>
+                        </div>
+                        <!-- Competitors -->
+                        {% for comp in data.competitors %}
+                        <div class="bar-row">
+                            <div class="bar-label-group">
+                                <span>{{ comp.name }}</span>
+                                <span>{{ "{:,}".format(comp.tiktok_followers) }}</span>
+                            </div>
+                            <div class="bar-track">
+                                <div class="bar-fill" style="width: {{ (comp.tiktok_followers / data.competitors[2].tiktok_followers * 100)|round(0) if data.competitors[2].tiktok_followers > 0 else 0 }}%"></div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Google Reviews comparison -->
+                <div class="chart-container">
+                    <div class="chart-title">Reseñas Totales en Google Maps</div>
+                    <div class="bar-chart">
+                        <!-- Client -->
+                        <div class="bar-row client-row">
+                            <div class="bar-label-group">
+                                <span>Tú</span>
+                                <span>{{ data.google_metrics.total_reviews }}</span>
+                            </div>
+                            <div class="bar-track">
+                                <div class="bar-fill" style="width: {{ (data.google_metrics.total_reviews / data.competitors[2].google_reviews * 100)|round(0) if data.competitors[2].google_reviews > 0 else 0 }}%"></div>
+                            </div>
+                        </div>
+                        <!-- Competitors -->
+                        {% for comp in data.competitors %}
+                        <div class="bar-row">
+                            <div class="bar-label-group">
+                                <span>{{ comp.name }}</span>
+                                <span>{{ comp.google_reviews }}</span>
+                            </div>
+                            <div class="bar-track">
+                                <div class="bar-fill" style="width: {{ (comp.google_reviews / data.competitors[2].google_reviews * 100)|round(0) if data.competitors[2].google_reviews > 0 else 0 }}%"></div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RECOMMENDATIONS -->
+        <div class="section-card recommendations-card">
+            <h2>Plan de Acción Priorizado para tu Negocio</h2>
+            <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 0.25rem;">Sigue estos pasos recomendados por nuestro equipo para mejorar tus conversiones y reputación hoy mismo:</p>
+            
+            <div class="rec-list">
+                {% for rec in data.recommendations %}
+                    {% set prio = "media" %}
+                    {% if "WhatsApp" in rec or "bio" in rec or "reseñas" in rec %}
+                        {% set prio = "alta" %}
+                    {% endif %}
+                    {% if "Rediseño" in rec or "Estrategia" in rec or "móviles" in rec or "caído" in rec %}
+                        {% set prio = "critica" %}
+                    {% endif %}
+                    <div class="rec-item priority-{{ prio }}">
+                        <div class="rec-text">{{ rec }}</div>
+                        <div class="rec-priority">{{ prio }}</div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Right Column -->
+    <div style="display: flex; flex-direction: column; gap: 2rem;">
+        <!-- Puntuación Global Card -->
+        <div class="card score-widget">
+            <h3 style="margin-bottom: 1.5rem;">Puntuación Global</h3>
+            
+            <div class="score-circle">
+                <svg viewBox="0 0 100 100">
+                    <circle class="bg-circle" cx="50" cy="50" r="40"></circle>
+                    {% set score = data.global_metrics.score %}
+                    {% set stroke_val = (100 - score) / 100 * 251.2 %}
+                    {% set stroke_color = "#E74C3C" if score < 40 else ("#F39C12" if score < 60 else ("#4A90D9" if score < 80 else "#2ECC71")) %}
+                    <circle class="progress-circle" cx="50" cy="50" r="40" 
+                            stroke="{{ stroke_color }}"
+                            stroke-dasharray="251.2" 
+                            stroke-dashoffset="{{ stroke_val }}"></circle>
+                </svg>
+                <div style="z-index: 10;">
+                    <div class="score-value">{{ score }}</div>
+                    <div class="score-label" style="color: {{ stroke_color }};">{{ status_text }}</div>
+                </div>
+            </div>
+            
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Puntuación acumulada a través del análisis de las tres principales áreas digitales de tu negocio.</p>
+        </div>
+
+        <!-- Dinero Perdido Card -->
+        <div class="card money-lost-card">
+            <h2>Dinero Perdido al Mes</h2>
+            <p style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase;">Pérdida Estimada</p>
+            <div class="money-lost-amount">${{ data.global_metrics.money_lost_total }} USD</div>
+            <p style="font-size: 0.9rem; margin-bottom: 1rem;">Estás dejando de facturar este monto debido a deficiencias digitales.</p>
+            
+            <div class="money-lost-breakdown">
+                <div>
+                    <span>Pérdidas en TikTok:</span>
+                    <strong>${{ data.tiktok_metrics.money_lost }} USD</strong>
+                </div>
+                <div>
+                    <span>Pérdidas en Sitio Web:</span>
+                    <strong>${{ data.web_metrics.money_lost }} USD</strong>
+                </div>
+                <div>
+                    <span>Pérdidas en Reseñas GMB:</span>
+                    <strong>${{ data.google_metrics.money_lost }} USD</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Perfil Digital Card -->
+        <div class="card profile-card" style="text-align: center;">
+            {% set profile = data.lead_info.perfil %}
+            <div class="profile-emoji">
+                {% if "Principiante" in profile %}🌱
+                {% elif "Estancado" in profile %}🚀
+                {% elif "Fuerte" in profile %}🏆
+                {% elif "Inactivo" in profile %}😴
+                {% elif "Fantasma" in profile %}🤫
+                {% else %}🔗{% endif %}
+            </div>
+            <div class="profile-title"><b>{{ profile }}</b></div>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">
+                Clasificación de tu nivel de digitalización basada en volumen de red, optimización web y reputación.
+            </p>
+            <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Servicio Recomendado:</div>
+            <div class="profile-service">
+                {% if "Principiante" in profile %}Pack de Despegue Digital
+                {% elif "Estancado" in profile %}Estrategia de Contenido + TikTok Ads
+                {% elif "Fuerte" in profile %}Optimización Web + Automatización
+                {% elif "Inactivo" in profile %}Community Manager + Reactivación
+                {% elif "Fantasma" in profile %}Gestión de Reputación + SEO Local
+                {% else %}Integración Omnicanal{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

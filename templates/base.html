@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dipromasters | Diagnóstico Digital{% endblock %}</title>
+    <!-- Meta Descriptions for SEO -->
+    <meta name="description" content="Obtén un informe digital y auditoría de rendimiento de tu negocio gratis con Dipromasters. Analizamos TikTok, Web y Google Reviews en segundos.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <a href="/" class="logo" style="display: flex; align-items: center;">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Dipromasters" style="height: 45px; width: auto;">
+            </a>
+            <nav class="nav-links">
+                <a href="/" class="{% if request.path == '/' %}active{% endif %}">Nuevo Diagnóstico</a>
+                <a href="/agency" class="{% if request.path == '/agency' %}active{% endif %}">Panel Agencia</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <h3>DIPROMASTERS</h3>
+            <p>Agencia líder en Growth Marketing, Aceleración Digital y Desarrollo Web.</p>
+            <p>&copy; 2026 Dipromasters. Todos los derechos reservados. Diseñado con fines comerciales y de ventas.</p>
+        </div>
+    </footer>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

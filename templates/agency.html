@@ -1,0 +1,349 @@
+{% extends 'base.html' %}
+
+{% block title %}Dipromasters | Panel Interno de Ventas{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <div>
+        <p style="color: var(--text-muted); font-weight: 600;">PORTAL DE LA AGENCIA</p>
+        <h1 style="font-size: 2.2rem; margin-top: 0.25rem;">Control Comercial de Leads</h1>
+    </div>
+    <div>
+        <button onclick="exportToExcel()" class="btn btn-outline">Exportar a Excel (CSV)</button>
+    </div>
+</div>
+
+<!-- Metrics Cards -->
+<div class="stats-cards-grid">
+    <div class="stat-card">
+        <span class="stat-title">Diagnósticos este mes</span>
+        <span class="stat-num">{{ metrics.leads_mes }}</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-title">Leads Calientes</span>
+        <span class="stat-num" style="color: var(--danger);">{{ metrics.leads_calientes }}</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-title">Tasa de Cierre</span>
+        <span class="stat-num" style="color: var(--success);">{{ metrics.tasa_cierre }}%</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-title">Total de Diagnósticos</span>
+        <span class="stat-num">{{ metrics.total_leads }}</span>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 2.5fr 1fr; gap: 2rem;">
+    <!-- Main Section: Leads Table -->
+    <div>
+        <!-- Filters Bar -->
+        <form id="filtersForm" class="filters-bar" onsubmit="applyFilters(event)">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="filterProfile">Perfil</label>
+                <select id="filterProfile" name="profile" class="form-control">
+                    <option value="">Todos los perfiles</option>
+                    <option value="🌱 Principiante Digital">🌱 Principiante Digital</option>
+                    <option value="🚀 Estancado con Potencial">🚀 Estancado con Potencial</option>
+                    <option value="🏆 Competidor Fuerte">🏆 Competidor Fuerte</option>
+                    <option value="😴 Inactivo con Audiencia">😴 Inactivo con Audiencia</option>
+                    <option value="🤫 Fantasma Digital">🤫 Fantasma Digital</option>
+                    <option value="🔗 Desconectado Digital">🔗 Desconectado Digital</option>
+                </select>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="filterStatus">Estado</label>
+                <select id="filterStatus" name="status" class="form-control">
+                    <option value="">Todos los estados</option>
+                    <option value="Nuevo">Nuevo</option>
+                    <option value="Contactado">Contactado</option>
+                    <option value="Cerrado">Cerrado</option>
+                    <option value="Descartado">Descartado</option>
+                </select>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="filterScore">Puntuación Max</label>
+                <input type="number" id="filterScore" name="score_max" class="form-control" placeholder="Ej. 60" min="0" max="100">
+            </div>
+            
+            <button type="submit" class="btn btn-secondary" style="height: 45px; padding: 0 1.5rem;">Filtrar</button>
+        </form>
+
+        <!-- Leads Table -->
+        <div class="leads-table-container">
+            <table class="leads-table" id="leadsTable">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Perfil</th>
+                        <th>Puntuación</th>
+                        <th>Dinero Perdido</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lead in leads %}
+                    <tr id="lead-row-{{ lead.id }}" data-nombre="{{ lead.nombre }}" data-email="{{ lead.email }}" data-telefono="{{ lead.telefono }}" data-perfil="{{ lead.perfil }}" data-score="{{ lead.total_score }}" data-lost="{{ lead.money_lost_total }}">
+                        <td>
+                            <strong>{{ lead.nombre }}</strong><br>
+                            <span style="font-size: 0.8rem; color: var(--text-muted);">{{ lead.email }} | {{ lead.telefono }}</span>
+                        </td>
+                        <td><span style="font-size: 0.85rem; font-weight: 500;">{{ lead.perfil }}</span></td>
+                        <td>
+                            {% set score = lead.total_score %}
+                            {% if score >= 80 %}
+                                <span class="semaphore badge-excellent">{{ score }}/100</span>
+                            {% elif score >= 60 %}
+                                <span class="semaphore badge-improvable">{{ score }}/100</span>
+                            {% elif score >= 40 %}
+                                <span class="semaphore badge-worrying">{{ score }}/100</span>
+                            {% else %}
+                                <span class="semaphore badge-critical">{{ score }}/100</span>
+                            {% endif %}
+                        </td>
+                        <td style="color: var(--danger); font-weight: 700;">${{ lead.money_lost_total }} USD/m</td>
+                        <td>
+                            <select onchange="updateStatus({{ lead.id }}, this.value)" class="form-control" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; width: auto; border-radius: 8px;">
+                                <option value="Nuevo" {% if lead.estado_seguimiento == 'Nuevo' %}selected{% endif %}>Nuevo</option>
+                                <option value="Contactado" {% if lead.estado_seguimiento == 'Contactado' %}selected{% endif %}>Contactado</option>
+                                <option value="Cerrado" {% if lead.estado_seguimiento == 'Cerrado' %}selected{% endif %}>Cerrado</option>
+                                <option value="Descartado" {% if lead.estado_seguimiento == 'Descartado' %}selected{% endif %}>Descartado</option>
+                            </select>
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <a href="/dashboard/{{ lead.id }}" target="_blank" class="btn btn-outline" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; border-radius: 6px;" title="Ver Dashboard de Resultados">Dashboard</a>
+                                <button onclick="openScriptModal('{{ lead.perfil }}', '{{ lead.nombre }}', {{ lead.money_lost_total }})" class="btn btn-primary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; border-radius: 6px;" title="Abrir Guion de Ventas">Guion</button>
+                                <button onclick="openFollowupDrawer({{ lead.id }}, '{{ lead.nombre }}')" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; border-radius: 6px;" title="Seguimiento comercial">Notas</button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Sidebar: Top Problems -->
+    <div style="display: flex; flex-direction: column; gap: 2rem;">
+        <div class="card" style="padding: 1.5rem;">
+            <h3 style="margin-bottom: 1rem;">Top Problemas Detectados</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">Los problemas más comunes en los diagnósticos de este mes:</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                {% for prob in metrics.top_problemas %}
+                <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-main); padding: 0.75rem 1rem; border-radius: 10px;">
+                    <span style="font-size: 0.85rem; font-weight: 600; color: var(--primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;" title="{{ prob.problema }}">
+                        {{ prob.problema }}
+                    </span>
+                    <span style="background: var(--primary); color: #ffffff; font-size: 0.8rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 20px;">
+                        {{ prob.cantidad }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sales Script Modal -->
+<div id="scriptModal" class="modal">
+    <div class="modal-content">
+        <span onclick="closeScriptModal()" class="drawer-close">&times;</span>
+        <h2 id="scriptModalTitle" style="margin-bottom: 1.5rem;">Guion de Venta para el Cliente</h2>
+        
+        <div class="script-section">
+            <h4 style="color: var(--secondary);">Enfoque en Fuga de Dinero:</h4>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Usa este guion telefónico personalizado centrado en la urgencia y pérdidas detectadas:</p>
+            <div id="scriptBox" class="script-box"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Followup Drawer (Seguimiento side panel) -->
+<div id="drawerOverlay" class="drawer-overlay" onclick="closeFollowupDrawer()"></div>
+<div id="followupDrawer" class="drawer">
+    <span onclick="closeFollowupDrawer()" class="drawer-close">&times;</span>
+    <h2 class="drawer-title" id="drawerLeadName">Seguimiento Comercial</h2>
+    
+    <form id="followupForm" onsubmit="submitFollowupNote(event)" style="margin-bottom: 2rem;">
+        <input type="hidden" id="drawerLeadId" name="lead_id">
+        <div class="form-group">
+            <label for="comentario">Agregar nueva nota comercial</label>
+            <textarea id="comentario" name="comentario" class="form-control" rows="4" placeholder="Ej. Llamado realizado. Tienen interés en el rediseño web y la optimización de SEO Local para Maps..." required></textarea>
+        </div>
+        <button type="submit" class="btn btn-secondary" style="width: 100%;">Guardar Nota</button>
+    </form>
+    
+    <h3>Historial de Notas</h3>
+    <div class="timeline" id="notesTimeline">
+        <!-- Notes are populated dynamically via JS -->
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function updateStatus(leadId, status) {
+        fetch(`/update-status/${leadId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ estado_seguimiento: status })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                console.log(`Status of lead ${leadId} updated to ${status}`);
+            } else {
+                alert('Error al actualizar el estado del lead');
+            }
+        });
+    }
+
+    function applyFilters(event) {
+        event.preventDefault();
+        const profile = document.getElementById('filterProfile').value;
+        const status = document.getElementById('filterStatus').value;
+        const scoreMax = document.getElementById('filterScore').value;
+        
+        let url = '/agency?';
+        if (profile) url += `profile=${encodeURIComponent(profile)}&`;
+        if (status) url += `status=${encodeURIComponent(status)}&`;
+        if (scoreMax) url += `score_max=${scoreMax}&`;
+        
+        window.location.href = url;
+    }
+
+    // Scripts de ventas en base a perfiles
+    const salesScripts = {
+        "🌱 Principiante Digital": (name, money) => `Hola ${name},\nTe hablo de Dipromasters. Estuvimos analizando los canales digitales de tu negocio y detectamos que estás iniciando con tu presencia online. Vimos que tienes menos de 1,000 seguidores en TikTok y no tienes la ficha de Google My Business completamente optimizada.\n\nCalculamos que esto te representa una pérdida o costo de oportunidad de aproximadamente $${money} USD al mes en clientes que terminan yendo a tu competencia local.\n\nDiseñamos un "Pack de Despegue Digital" que te da en 15 días la base digital lista para captar clientes en tu ciudad. ¿Te vendría bien una llamada corta mañana a las 10:00 para enseñarte cómo implementarlo?`,
+        
+        "🚀 Estancado con Potencial": (name, money) => `Hola ${name},\nTe saluda Dipromasters. Analizamos tu TikTok y vimos que tienes un gran potencial con tus seguidores, pero tu tasa de engagement (interacción) está por debajo de la media y eso frena que el algoritmo viralice tus videos.\n\nEsta falta de optimización en tus contenidos y anuncios te cuesta aproximadamente $${money} USD mensuales en tráfico no convertido.\n\nCon nuestra estrategia de contenido + TikTok Ads, podemos triplicar tu alcance y convertir esos usuarios en compradores. ¿Hablamos mañana y te comparto 3 ideas rápidas que puedes aplicar gratis?`,
+        
+        "🏆 Competidor Fuerte": (name, money) => `Hola ${name},\nUn saludo de parte de Dipromasters. Primero felicidades, su negocio es un competidor fuerte en redes sociales con un sitio web con buena optimización.\n\nSin embargo, detectamos pequeñas fugas críticas de ingresos (aproximadamente $${money} USD/mes) en automatizaciones de leads y velocidad de conversión en dispositivos móviles.\n\nQueremos presentarte una propuesta de automatización avanzada y optimización para captar hasta un 40% más de leads del tráfico que ya estás recibiendo. ¿Te interesaría ver los detalles en una breve videollamada de 10 minutos?`,
+        
+        "😴 Inactivo con Audiencia": (name, money) => `Hola ${name},\nTe hablo de Dipromasters. Estuvimos revisando tu cuenta de TikTok y notamos que tienes una audiencia valiosa de seguidores acumulada, pero tu frecuencia de publicación es baja (menos de 4 posts al mes). Esto hace que el algoritmo te oculte.\n\nEstimamos que dejar esa comunidad inactiva te representa un costo de oportunidad de $${money} USD mensuales.\n\nPodemos ayudarte a reactivar tu marca con un servicio de Community Management y un plan de contenidos mensual estratégico. ¿Te gustaría agendar una reunión rápida para presentarte un boceto de plan de reactivación?`,
+        
+        "🤫 Fantasma Digital": (name, money) => `Hola ${name},\nUn saludo de Dipromasters. Analizamos la reputación de tu negocio en Google Maps y vimos que tienes una calificación baja o menos de 10 reseñas. Prácticamente eres invisible para clientes locales que buscan tu producto o servicio en su zona.\n\nCalculamos que esta falta de reputación y SEO local te está haciendo perder alrededor de $${money} USD al mes en clientes que se van con otros negocios con mejores calificaciones.\n\nPodemos activar un plan de Gestión de Reputación y SEO Local para posicionarte en los primeros 3 resultados de Google Maps y conseguir reseñas de 5 estrellas de tus clientes. ¿Te gustaría ver cómo lo hacemos en una llamada de 10 minutos?`,
+        
+        "🔗 Desconectado Digital": (name, money) => `Hola ${name},\nTe saluda el equipo de Dipromasters. Realizamos un diagnóstico y notamos una desconexión crítica en tus canales: tienes un sitio web pero no cuentas con redes sociales activas (o viceversa).\n\nEsta desconexión omnicanal confunde a tus prospectos y te cuesta aproximadamente $${money} USD al mes en conversiones no logradas.\n\nTe sugerimos un plan de Integración Omnicanal para sincronizar tus campañas y crear un embudo de ventas sólido entre tu web y tus redes. ¿Agendamos una breve asesoría gratuita mañana para detallar el flujo?`
+    };
+
+    function openScriptModal(perfil, nombre, money) {
+        const modal = document.getElementById('scriptModal');
+        const title = document.getElementById('scriptModalTitle');
+        const box = document.getElementById('scriptBox');
+        
+        title.innerText = `Guion de Ventas: ${perfil}`;
+        
+        // Remove emoji prefix if any to match keys
+        let cleanPerfil = perfil;
+        const scriptFunc = salesScripts[cleanPerfil];
+        
+        if (scriptFunc) {
+            box.innerText = scriptFunc(nombre, money);
+        } else {
+            box.innerText = "No hay un guion predefinido para este perfil. Enfoque general: Enfatizar la pérdida financiera mensual y agendar una llamada de asesoría de 15 minutos.";
+        }
+        
+        modal.classList.add('active');
+    }
+
+    function closeScriptModal() {
+        document.getElementById('scriptModal').classList.remove('active');
+    }
+
+    function openFollowupDrawer(leadId, leadName) {
+        document.getElementById('drawerLeadName').innerText = `Seguimiento: ${leadName}`;
+        document.getElementById('drawerLeadId').value = leadId;
+        
+        // Clear timeline
+        const timeline = document.getElementById('notesTimeline');
+        timeline.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem;">Cargando notas...</p>';
+        
+        // Fetch notes
+        fetch(`/get-followup/${leadId}`)
+        .then(res => res.json())
+        .then(data => {
+            timeline.innerHTML = '';
+            if (data.notes.length === 0) {
+                timeline.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem;">No hay notas registradas para este lead.</p>';
+            } else {
+                data.notes.forEach(note => {
+                    const item = document.createElement('div');
+                    item.className = 'timeline-item';
+                    item.innerHTML = `
+                        <div class="timeline-meta">${note.fecha} | por ${note.usuario}</div>
+                        <div class="timeline-text">${note.comentarios}</div>
+                    `;
+                    timeline.appendChild(item);
+                });
+            }
+        });
+        
+        document.getElementById('followupDrawer').classList.add('active');
+        document.getElementById('drawerOverlay').classList.add('active');
+    }
+
+    function closeFollowupDrawer() {
+        document.getElementById('followupDrawer').classList.remove('active');
+        document.getElementById('drawerOverlay').classList.remove('active');
+    }
+
+    function submitFollowupNote(event) {
+        event.preventDefault();
+        const leadId = document.getElementById('drawerLeadId').value;
+        const comentario = document.getElementById('comentario').value;
+        
+        fetch(`/add-followup/${leadId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ comentarios: comentario })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('comentario').value = '';
+                // Reload notes
+                openFollowupDrawer(leadId, document.getElementById('drawerLeadName').innerText.replace('Seguimiento: ', ''));
+            } else {
+                alert('Error al guardar la nota comercial');
+            }
+        });
+    }
+
+    function exportToExcel() {
+        const rows = document.querySelectorAll('#leadsTable tbody tr');
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "ID,Nombre,Email,Telefono,Perfil,Puntuacion,Dinero Perdido,Estado\n";
+        
+        rows.forEach(row => {
+            const id = row.id.replace('lead-row-', '');
+            const nombre = row.getAttribute('data-nombre');
+            const email = row.getAttribute('data-email');
+            const telefono = row.getAttribute('data-telefono');
+            const perfil = row.getAttribute('data-perfil');
+            const score = row.getAttribute('data-score');
+            const lost = row.getAttribute('data-lost');
+            const statusSelect = row.querySelector('select');
+            const status = statusSelect ? statusSelect.value : '';
+            
+            csvContent += `"${id}","${nombre}","${email}","${telefono}","${perfil}","${score}","${lost}","${status}"\n`;
+        });
+        
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "leads_diagnostico_dipromasters.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
+{% endblock %}
